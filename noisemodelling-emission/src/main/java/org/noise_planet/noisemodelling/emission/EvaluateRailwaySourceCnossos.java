@@ -246,13 +246,13 @@ public class EvaluateRailwaySourceCnossos {
         return nbCoach;
     }
 
-    public double getSpectre(String typeVehicle, String ref, int runningCondition,String sourceHeight, int spectreVer, int freqId) { //
-        int refId = getCnossosVehicleNode(typeVehicle).get(ref).intValue();
-        if(ref.equals("RefTraction")) {
+    public double getSpectre(SpectreParameters spectreParameters) { //
+        int refId = getCnossosVehicleNode(spectreParameters.getTypeVehicle()).get(spectreParameters.getRef()).intValue();
+        if(spectreParameters.getRef().equals("RefTraction")) {
             double tractionSpectre=0;
             String condition= "ConstantSpeed";
             if (refId != 0) {
-                switch(runningCondition){
+                switch(spectreParameters.getRunningCondition()){
                     case 0 :
                         condition = "ConstantSpeed";
                         break;
@@ -267,17 +267,17 @@ public class EvaluateRailwaySourceCnossos {
                         break;
                 }
                 try {
-                    tractionSpectre = getCnossosRailWayData(spectreVer).get("Vehicle").get(condition).get(String.valueOf(refId)).get("Values").get(sourceHeight).get(freqId).doubleValue();
+                    tractionSpectre = getCnossosRailWayData(spectreParameters.getSpectreVer()).get("Vehicle").get(condition).get(String.valueOf(refId)).get("Values").get(spectreParameters.getSourceHeight()).get(spectreParameters.getFreqId()).doubleValue();
                 } catch (NullPointerException ex) {
                     throw new IllegalArgumentException(String.format(Locale.ROOT, "Could not find traction spectrum for the following parameters " +
                             "getCnossosRailWayData(%d).get(\"Vehicle\").get(%s).get(String.valueOf" +
-                            "(%d)).get(\"Values\").get(%s).get(%d)", spectreVer, condition, refId, sourceHeight, freqId));
+                            "(%d)).get(\"Values\").get(%s).get(%d)", spectreParameters.getSpectreVer(), condition, refId, spectreParameters.getSourceHeight(), spectreParameters.getFreqId()));
                 }
             }
             return tractionSpectre;
-        }else if(ref.equals("RefAerodynamic") ){
+        }else if(spectreParameters.getRef().equals("RefAerodynamic") ){
             double aerodynamicNoise;
-            aerodynamicNoise = getCnossosRailWayData(spectreVer).get("Vehicle").get("AerodynamicNoise").get(String.valueOf(refId)).get("Values").get(sourceHeight).get(freqId).doubleValue();
+            aerodynamicNoise = getCnossosRailWayData(spectreParameters.getSpectreVer()).get("Vehicle").get("AerodynamicNoise").get(String.valueOf(refId)).get("Values").get(spectreParameters.getSourceHeight()).get(spectreParameters.getFreqId()).doubleValue();
             return aerodynamicNoise;
         }else{
             return 0;
@@ -404,9 +404,9 @@ public class EvaluateRailwaySourceCnossos {
         for(int idFreq = 0; idFreq < 24; idFreq++) {
             if(!ref.equals("RefAerodynamic")) {
                 if (height == 0) {
-                    lWSpectre[idFreq] = getSpectre(typeVehicle, ref, runningCondition, "A", spectreVer, idFreq);
+                    lWSpectre[idFreq] = getSpectre(new SpectreParameters(typeVehicle, ref, runningCondition, "A", spectreVer, idFreq));
                 } else if (height == 1) {
-                    lWSpectre[idFreq] = getSpectre(typeVehicle, ref, runningCondition, "B", spectreVer, idFreq);
+                    lWSpectre[idFreq] = getSpectre(new SpectreParameters(typeVehicle, ref, runningCondition, "B", spectreVer, idFreq));
                 }
             }else{
                 int refId = getCnossosVehicleNode(typeVehicle).get(ref).intValue();
@@ -414,9 +414,9 @@ public class EvaluateRailwaySourceCnossos {
                     lWSpectre[idFreq] =-99;
                 }else{
                     if (height == 0) {
-                        lWSpectre[idFreq] = getSpectre(typeVehicle, ref, runningCondition, "A", spectreVer, idFreq);
+                        lWSpectre[idFreq] = getSpectre(new SpectreParameters(typeVehicle, ref, runningCondition, "A", spectreVer, idFreq));
                     } else if (height == 1) {
-                        lWSpectre[idFreq] = getSpectre(typeVehicle, ref, runningCondition, "B", spectreVer, idFreq);
+                        lWSpectre[idFreq] = getSpectre(new SpectreParameters(typeVehicle, ref, runningCondition, "B", spectreVer, idFreq));
                     }
                     double v0Aero = getAeroV0Alpha(typeVehicle,ref, spectreVer, "V0");
                     double alphaAero = getAeroV0Alpha(typeVehicle,ref, spectreVer, "Alpha");
