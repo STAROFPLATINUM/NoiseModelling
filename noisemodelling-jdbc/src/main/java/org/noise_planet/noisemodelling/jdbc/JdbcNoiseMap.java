@@ -34,9 +34,9 @@ import static org.noise_planet.noisemodelling.pathfinder.utils.AlphaUtils.getWal
 public abstract class JdbcNoiseMap {
     // When computing cell size, try to keep propagation distance away from the cell
     // inferior to this ratio (in comparison with cell width)
-    PropagationProcessPathData propagationProcessPathDataDay = new PropagationProcessPathData();
-    PropagationProcessPathData propagationProcessPathDataEvening = new PropagationProcessPathData();
-    PropagationProcessPathData propagationProcessPathDataNight = new PropagationProcessPathData();
+    PropagationProcessPathData propProcPathDataDay = new PropagationProcessPathData();
+    PropagationProcessPathData propProcPathDataEvening = new PropagationProcessPathData();
+    PropagationProcessPathData propProcPathDataNight = new PropagationProcessPathData();
     Logger logger = LoggerFactory.getLogger(JdbcNoiseMap.class);
     private static final int DEFAULT_FETCH_SIZE = 300;
     protected int fetchSize = DEFAULT_FETCH_SIZE;
@@ -88,46 +88,46 @@ public abstract class JdbcNoiseMap {
     public PropagationProcessPathData getPropagationProcessPathData(LDENConfig.TIME_PERIOD time_period) {
         switch (time_period) {
             case DAY:
-                return propagationProcessPathDataDay;
+                return propProcPathDataDay;
             case EVENING:
-                return propagationProcessPathDataEvening;
+                return propProcPathDataEvening;
             default:
-                return propagationProcessPathDataNight;
+                return propProcPathDataNight;
         }
     }
 
     public void setPropagationProcessPathData(LDENConfig.TIME_PERIOD time_period, PropagationProcessPathData propagationProcessPathData) {
         switch (time_period) {
             case DAY:
-                propagationProcessPathDataDay = propagationProcessPathData;
+                propProcPathDataDay = propagationProcessPathData;
             case EVENING:
-                propagationProcessPathDataEvening = propagationProcessPathData;
+                propProcPathDataEvening = propagationProcessPathData;
             default:
-                propagationProcessPathDataNight = propagationProcessPathData;
+                propProcPathDataNight = propagationProcessPathData;
         }
     }
     public PropagationProcessPathData getPropagationProcessPathDataDay() {
-        return propagationProcessPathDataDay;
+        return propProcPathDataDay;
     }
 
-    public void setPropagationProcessPathDataDay(PropagationProcessPathData propagationProcessPathDataDay) {
-        this.propagationProcessPathDataDay = propagationProcessPathDataDay;
+    public void setPropagationProcessPathDataDay(PropagationProcessPathData propProcPathDataDay) {
+        this.propProcPathDataDay = propProcPathDataDay;
     }
 
     public PropagationProcessPathData getPropagationProcessPathDataEvening() {
-        return propagationProcessPathDataEvening;
+        return propProcPathDataEvening;
     }
 
-    public void setPropagationProcessPathDataEvening(PropagationProcessPathData propagationProcessPathDataEvening) {
-        this.propagationProcessPathDataEvening = propagationProcessPathDataEvening;
+    public void setPropagationProcessPathDataEvening(PropagationProcessPathData propProcPathDataEvening) {
+        this.propProcPathDataEvening = propProcPathDataEvening;
     }
 
     public PropagationProcessPathData getPropagationProcessPathDataNight() {
-        return propagationProcessPathDataNight;
+        return propProcPathDataNight;
     }
 
-    public void setPropagationProcessPathDataNight(PropagationProcessPathData propagationProcessPathDataNight) {
-        this.propagationProcessPathDataNight = propagationProcessPathDataNight;
+    public void setPropagationProcessPathDataNight(PropagationProcessPathData propProcPathDataNight) {
+        this.propProcPathDataNight = propProcPathDataNight;
     }
 
     public boolean isVerbose() {
@@ -297,8 +297,8 @@ public abstract class JdbcNoiseMap {
                     columnIndex = JDBCUtilities.getFieldIndex(rs.getMetaData(), pkBuilding);
                 }
                 double oldAlpha = wallAbsorption;
-                List<Double> alphaList = new ArrayList<>(propagationProcessPathDataDay.freq_lvl.size());
-                for(double freq : propagationProcessPathDataDay.freq_lvl_exact) {
+                List<Double> alphaList = new ArrayList<>(propProcPathDataDay.freq_lvl.size());
+                for(double freq : propProcPathDataDay.freq_lvl_exact) {
                     alphaList.add(getWallAlpha(oldAlpha, freq));
                 }
                 while (rs.next()) {
@@ -317,7 +317,7 @@ public abstract class JdbcNoiseMap {
                                 // Compute building absorption value
                                 alphaList.clear();
                                 oldAlpha = rs.getDouble(alphaFieldName);
-                                for(double freq : propagationProcessPathDataDay.freq_lvl_exact) {
+                                for(double freq : propProcPathDataDay.freq_lvl_exact) {
                                     alphaList.add(getWallAlpha(oldAlpha, freq));
                                 }
                             }

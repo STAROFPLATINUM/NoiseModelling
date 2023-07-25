@@ -128,7 +128,7 @@ public class PointNoiseMap extends JdbcNoiseMap {
         if(propagationProcessDataFactory != null) {
             propagationProcessData = propagationProcessDataFactory.create(builder);
         } else {
-            propagationProcessData = new CnossosPropagationData(builder, propagationProcessPathDataDay.freq_lvl);
+            propagationProcessData = new CnossosPropagationData(builder, propProcPathDataDay.freq_lvl);
         }
         propagationProcessData.reflexionOrder = soundReflectionOrder;
         propagationProcessData.setBodyBarrier(bodyBarrier);
@@ -265,10 +265,10 @@ public class PointNoiseMap extends JdbcNoiseMap {
         }
         IComputeRaysOut computeRaysOut;
         if(computeRaysOutFactory == null) {
-            computeRaysOut = new ComputeRaysOutAttenuation(false, propagationProcessPathDataDay, threadData);
+            computeRaysOut = new ComputeRaysOutAttenuation(false, propProcPathDataDay, threadData);
         } else {
-            computeRaysOut = computeRaysOutFactory.create(threadData, propagationProcessPathDataDay,
-                    propagationProcessPathDataEvening, propagationProcessPathDataNight);
+            computeRaysOut = computeRaysOutFactory.create(threadData, propProcPathDataDay,
+                    propProcPathDataEvening, propProcPathDataNight);
         }
 
         ComputeCnossosRays computeRays = new ComputeCnossosRays(threadData);
