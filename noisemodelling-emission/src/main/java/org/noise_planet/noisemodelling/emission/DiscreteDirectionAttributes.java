@@ -139,89 +139,117 @@ public class DiscreteDirectionAttributes implements DirectionAttributes {
      * @return DirectivityRecord instance
      */
     public DirectivityRecord getRecord(double theta, double phi, int interpolate) {
-        // all records points must be ordered on anti-clockwise
-        // point[0] and point[2] must be the most distant
-        DirectivityRecord[] allRecords = null;
+        DirectivityRecord[] allRecords;
         DirectivityRecord record = new DirectivityRecord(theta, phi, null);
-        int index = Collections.binarySearch(recordsTheta, record, thetaComparator);
-        if(index >= 0) {
-            return recordsTheta.get(index);
-        }
-        index = - index - 1;
-        if(index >= recordsTheta.size()) {
-            index = 0;
-        }
-        double theta2 = recordsTheta.get(index).getTheta();
-        // Take previous record
-        index -= 1;
-        if(index < 0) {
-            index = recordsTheta.size() - 1;
-        }
-        double theta1 = recordsTheta.get(index).getTheta();
-        index = Collections.binarySearch(recordsPhi, record, phiComparator);
-        index = - index - 1;
-        if(index >= recordsPhi.size()) {
-            index = 0;
-        }
-        double phi2 = recordsPhi.get(index).getPhi();
-        // Take previous record
-        index -= 1;
-        if (index < 0) {
-            index = recordsPhi.size() - 1;
-        }
-        double phi1 = recordsPhi.get(index).getPhi();
-        // Find closest records
-        int[] indexes = new int[]{
-                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta1, phi1, null), thetaComparator),
-                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta2, phi1, null), thetaComparator),
-                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta2, phi2, null), thetaComparator),
-                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta1, phi2, null), thetaComparator)};
+
+        int thetaIndex = getThetaIndex(record);
+        double theta1 = getTheta1(thetaIndex);
+        double theta2 = getTheta2(thetaIndex);
+
+        int phiIndex = getPhiIndex(record);
+        double phi1 = getPhi1(phiIndex);
+        double phi2 = getPhi2(phiIndex);
+
+        int[] indexes = getIndexes(theta1, phi1, theta2, phi2);
+
         if (Arrays.stream(indexes).min().getAsInt() < 0) {
             // got issues looking for directivity
             return new DirectivityRecord(theta, phi, new double[frequencies.length]);
         }
-        allRecords = new DirectivityRecord[]{
+
+        allRecords = getRecords(indexes);
+
+        return interpolate == 0 ? findClosestRecord(theta, phi, allRecords) : bilinearInterpolation(theta, phi, allRecords);
+    }
+
+    private int getThetaIndex(DirectivityRecord record) {
+        int index = Collections.binarySearch(recordsTheta, record, thetaComparator);
+        return (index >= 0) ? index : -index - 1;
+    }
+
+    private double getTheta1(int index) {
+        index = index >= recordsTheta.size() ? 0 : index;
+        return recordsTheta.get(index).getTheta();
+    }
+
+    private double getTheta2(int index) {
+        index = adjustIndex(index, recordsTheta.size());
+        return recordsTheta.get(index).getTheta();
+    }
+
+    private int getPhiIndex(DirectivityRecord record) {
+        int index = Collections.binarySearch(recordsPhi, record, phiComparator);
+        return -index - 1;
+    }
+
+    private double getPhi1(int index) {
+        index = index >= recordsPhi.size() ? 0 : index;
+        return recordsPhi.get(index).getPhi();
+    }
+
+    private double getPhi2(int index) {
+        index = adjustIndex(index, recordsPhi.size());
+        return recordsPhi.get(index).getPhi();
+    }
+
+    private int adjustIndex(int index, int size) {
+        index -= 1;
+        return index < 0 ? size - 1 : index;
+    }
+
+    private int[] getIndexes(double theta1, double phi1, double theta2, double phi2) {
+        return new int[]{
+                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta1, phi1, null), thetaComparator),
+                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta2, phi1, null), thetaComparator),
+                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta2, phi2, null), thetaComparator),
+                Collections.binarySearch(recordsTheta, new DirectivityRecord(theta1, phi2, null), thetaComparator)
+        };
+    }
+
+    private DirectivityRecord[] getRecords(int[] indexes) {
+        return new DirectivityRecord[]{
                 recordsTheta.get(indexes[0]),
                 recordsTheta.get(indexes[1]),
                 recordsTheta.get(indexes[2]),
                 recordsTheta.get(indexes[3])
         };
-        if(interpolate == 0) {
-            double minDist = Double.MAX_VALUE;
-            DirectivityRecord closest = allRecords[0];
-            for(DirectivityRecord r : allRecords) {
-                double testDist = getDistance(theta, phi, r);
-                if(testDist < minDist) {
-                    minDist = testDist;
-                    closest = r;
-                }
-            }
-            return closest;
-        } else {
-            // https://en.wikipedia.org/wiki/Bilinear_interpolation#Unit_square
-            double x1 = allRecords[0].theta;
-            double y1 = allRecords[0].phi;
+    }
 
-            double xLength = getDistance(allRecords[1].theta, allRecords[0].phi, allRecords[0]);
-            double yLength = getDistance(allRecords[0].theta, allRecords[2].phi, allRecords[0]);
-            // compute expected phi, theta as a normalized vector
-            double x = Math.max(0, Math.min(1, getDistance(x1, record.phi, record) / xLength));
-            double y = Math.max(0, Math.min(1, getDistance(record.theta, y1, record) / yLength));
-            if(Double.isNaN(x)) {
-                x = 0;
+    private DirectivityRecord findClosestRecord(double theta, double phi, DirectivityRecord[] allRecords) {
+        double minDist = Double.MAX_VALUE;
+        DirectivityRecord closest = allRecords[0];
+        for(DirectivityRecord r : allRecords) {
+            double testDist = getDistance(theta, phi, r);
+            if(testDist < minDist) {
+                minDist = testDist;
+                closest = r;
             }
-            if(Double.isNaN(y)) {
-                y = 0;
-            }
-            double[] att = new double[frequencies.length];
-            for(int idFrequency = 0; idFrequency < frequencies.length; idFrequency++) {
-                att[idFrequency] = Utils.wToDb(Utils.dbToW(allRecords[0].attenuation[idFrequency]) * (1 - x) * (1 - y)
-                        + Utils.dbToW(allRecords[1].attenuation[idFrequency]) * x * (1 - y)
-                        + Utils.dbToW(allRecords[3].attenuation[idFrequency]) * (1 - x) * y
-                        + Utils.dbToW(allRecords[2].attenuation[idFrequency]) * x * y);
-            }
-            return new DirectivityRecord(theta, phi, att);
         }
+        return closest;
+    }
+
+    private DirectivityRecord bilinearInterpolation(double theta, double phi, DirectivityRecord[] allRecords) {
+        double x1 = allRecords[0].theta;
+        double y1 = allRecords[0].phi;
+
+        double xLength = getDistance(allRecords[1].theta, allRecords[0].phi, allRecords[0]);
+        double yLength = getDistance(allRecords[0].theta, allRecords[2].phi, allRecords[0]);
+        // compute expected phi, theta as a normalized vector
+        double x = normalize(getDistance(x1, phi, new DirectivityRecord(theta, phi, null)) / xLength);
+        double y = normalize(getDistance(theta, y1, new DirectivityRecord(theta, phi, null)) / yLength);
+
+        double[] att = new double[frequencies.length];
+        for(int idFrequency = 0; idFrequency < frequencies.length; idFrequency++) {
+            att[idFrequency] = Utils.wToDb(Utils.dbToW(allRecords[0].attenuation[idFrequency]) * (1 - x) * (1 - y)
+                    + Utils.dbToW(allRecords[1].attenuation[idFrequency]) * x * (1 - y)
+                    + Utils.dbToW(allRecords[3].attenuation[idFrequency]) * (1 - x) * y
+                    + Utils.dbToW(allRecords[2].attenuation[idFrequency]) * x * y);
+        }
+        return new DirectivityRecord(theta, phi, att);
+    }
+    private double normalize(double value) {
+        double normalized = Math.max(0, Math.min(1, value));
+        return Double.isNaN(normalized) ? 0 : normalized;
     }
 
     /**
@@ -297,7 +325,7 @@ public class DiscreteDirectionAttributes implements DirectionAttributes {
         @Override
         public String toString() {
             return String.format(Locale.ROOT, "DirectivityRecord{theta=%.2f (%.2g°)" +
-                    ", phi=%.2f (%.2g°) , attenuation=%s}", theta, Math.toDegrees(theta), phi, Math.toDegrees(phi),
+                            ", phi=%.2f (%.2g°) , attenuation=%s}", theta, Math.toDegrees(theta), phi, Math.toDegrees(phi),
                     Arrays.toString(attenuation));
         }
 
